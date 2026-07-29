@@ -1,6 +1,6 @@
 const c = document.getElementById("c");
 const i = document.getElementById("i");
-const STORAGE_KEY = 'CHAT_HISTORY';
+const STORAGE_KEY = 'DEEPSEEK_CHAT_HISTORY';
 
 let m = [];
 
@@ -23,9 +23,7 @@ function buildMessage(content, role, time) {
     if (time) {
         const timeSpan = document.createElement('span');
         timeSpan.textContent = time;
-        timeSpan.style.fontSize = '10px';
-        timeSpan.style.color = '#aaa';
-        timeSpan.style.display = 'block';
+        timeSpan.className = 'time';
         div.appendChild(timeSpan);
     }
 
@@ -88,7 +86,7 @@ const s = async () => {
         d.replaceWith(newDiv);
         saveChat();
     } catch (e) {
-        d.innerHTML = `<span style="display:block;color:red;">${e.message || '网络错误'}</span>`;
+        d.innerHTML = '<span style="display:block;color:red;">' + (e.message || '网络错误') + '</span>';
     }
 };
 
