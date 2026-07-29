@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepSeek · 本地存储</title>
+    <style>
+        * {
+            -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        button {
+            background: transparent;
+            color: black;
+            border: 1px solid black;
+            outline: none;
+        }
+        button:focus { outline: none; }
+        button::-moz-focus-inner { border: 0; }
+        #i {
+            width: 8em;
+            height: 2em;
+            resize: none;
+            background: transparent;
+            color: black;
+            border: 1px solid black;
+            outline: none;
+        }
+        #i:focus { outline: none; }
+        textarea, button, div, span, * {
+            -webkit-tap-highlight-color: transparent !important;
+            outline: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="c"></div>
+    <textarea id="i" rows="1"></textarea><br>
+    <button onclick="s()">发送</button>
+    <button onclick="x()">清除内容</button>
+
+    <script>
+        const c = document.getElementById("c");
+        const i = document.getElementById("i");
+        const STORAGE_KEY = 'deepseek_chat_history';
+
+        let SYSTEM_PROMPT = '你是一个乐于助人的助手。';
+        fetch('hint.txt')
+            .then(res => {
+                if (!res.ok) throw new Error('hint.txt not found');
+                return res.text();
+            })
+            .then(text => {
+                SYSTEM_PROMPT = text.trim();
+                console.log('已加载系统提示词:', SYSTEM_PROMPT);
+            })
+            .catch(err => console.warn('加载 hint.txt 失败，使用默认提示词。', err));
+
+        let m = [];
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            try {
+                m = JSON.parse(saved);
+                m.forEach(msg => {
+                    const div = document.createElement('div');
+                    div.textContent = msg.content;
+                    if (msg.role === 'user') {
+                        div.style.textAlign = 'right';
+                    }
+                    c.appendChild(div);
+                    c.appendChild(document.createElement('hr'));
+                });
+            } catch (_) { m = []; }
+        }
+
+        function saveChat() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(m));
+        }
+
+        const s = async () => {
+            const userInput = i.value.trim();
+            if (!userInput) return;
+
+            m.push({ role: "user", content: userInput });
+            const userDiv = document.createElement('div');
+            userDiv.textContent = userInput;
+            userDiv.style.textAlign = 'right';
+            c.appendChild(userDiv);
+            c.appendChild(document.createElement('hr'));
+            i.value = "";
+
+            const assistantDiv = document.createElement('div');
+            assistantDiv.textContent = '...';
+            c.appendChild(assistantDiv);
+            c.appendChild(document.createElement('hr'));
+            const d = assistantDiv;
+
+            const messagesToSend = [
+                { role: "system", content: SYSTEM_PROMPT },
+                ...m
+            ];
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ messages: messagesToSend }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    console.error('API 请求失败:', data);
+                    d.textContent = `错误: ${data.error || '请求失败'}`;
+                    return;
+                }
+
+                const aiContent = data.choices?.[0]?.message?.content;
+                if (!aiContent) {
+                    console.warn('AI返回内容为空:', data);
+                    d.textContent = 'AI未返回有效内容';
+                    return;
+                }
+
+                m.push({ role: "assistant", content: aiContent });
+                d.textContent = aiContent;
+                saveChat();
+
+            } catch (error) {
+                console.error('网络请求异常:', error);
+                d.textContent = '网络错误，请稍后重试';
+            }
+        };
+
+        const x = () => {
+            m = [];
+            c.innerHTML = "";
+            localStorage.removeItem(STORAGE_KEY);
+        };
+
+        i.onkeydown = e => {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                s();
+            }
+        };
+
+        window.s = s;
+        window.x = x;
+    </script>
+</body>
+</html>
