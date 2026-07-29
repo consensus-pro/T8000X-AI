@@ -3,83 +3,103 @@ const i = document.getElementById("i");
 const STORAGE_KEY = 'CHAT_HISTORY';
 
 let m = [];
-const saved = localStorage.getItem(STORAGE_KEY);
-if (saved) {
-    try {
-        m = JSON.parse(saved);
-        m.forEach(msg => {
-            const div = document.createElement('div');
-            div.textContent = msg.content;
-            if (msg.role === 'user') {
-                div.style.textAlign = 'right';
-            }
-            c.appendChild(div);
-            c.appendChild(document.createElement('hr'));
-        });
-    } catch (_) { m = []; }
+
+function getTime() {
+    const d = new Date();
+    return [d.getHours(), d.getMinutes(), d.getSeconds()]
+        .map(n => String(n).padStart(2, '0')).join(':');
+}
+
+function buildMessage(content, role, time) {
+    const div = document.createElement('div');
+    div.style.margin = '6px 0';
+    div.style.textAlign = role === 'user' ? 'right' : 'left';
+
+    const contentSpan = document.createElement('span');
+    contentSpan.textContent = content;
+    contentSpan.style.display = 'block';
+    div.appendChild(contentSpan);
+
+    if (time) {
+        const timeSpan = document.createElement('span');
+        timeSpan.textContent = time;
+        timeSpan.style.fontSize = '10px';
+        timeSpan.style.color = '#aaa';
+        timeSpan.style.display = 'block';
+        div.appendChild(timeSpan);
+    }
+
+    return div;
+}
+
+function renderHistory() {
+    m.forEach(msg => {
+        c.appendChild(buildMessage(msg.content, msg.role, msg.time));
+        c.appendChild(document.createElement('hr'));
+    });
 }
 
 function saveChat() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(m));
 }
 
+const saved = localStorage.getItem(STORAGE_KEY);
+if (saved) {
+    try {
+        m = JSON.parse(saved);
+        renderHistory();
+    } catch (_) { m = []; }
+}
+
 const s = async () => {
     const userInput = i.value.trim();
     if (!userInput) return;
 
-    m.push({ role: "user", content: userInput });
-    const userDiv = document.createElement('div');
-    userDiv.textContent = userInput;
-    userDiv.style.textAlign = 'right';
-    c.appendChild(userDiv);
+    const now = getTime();
+    m.push({ role: "user", content: userInput, time: now });
+    c.appendChild(buildMessage(userInput, 'user', now));
     c.appendChild(document.createElement('hr'));
-    i.value = "";
+    i.value = '';
 
     const assistantDiv = document.createElement('div');
-    assistantDiv.textContent = '...';
+    assistantDiv.style.margin = '6px 0';
+    assistantDiv.style.textAlign = 'left';
+    assistantDiv.innerHTML = '<span style="display:block;">...</span>';
     c.appendChild(assistantDiv);
     c.appendChild(document.createElement('hr'));
     const d = assistantDiv;
 
     try {
-        const response = await fetch('/api/chat', {
+        const res = await fetch('/api/chat', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ messages: m }),
         });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '请求失败');
 
-        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content;
+        if (!content) throw new Error('AI未返回内容');
 
-        if (!response.ok) {
-            d.textContent = `错误: ${data.error || '请求失败'}`;
-            return;
-        }
+        const aiTime = getTime();
+        m.push({ role: 'assistant', content, time: aiTime });
 
-        const aiContent = data.choices?.[0]?.message?.content;
-        if (!aiContent) {
-            d.textContent = 'AI未返回有效内容';
-            return;
-        }
-
-        m.push({ role: "assistant", content: aiContent });
-        d.textContent = aiContent;
+        const newDiv = buildMessage(content, 'assistant', aiTime);
+        d.replaceWith(newDiv);
         saveChat();
-
-    } catch (error) {
-        d.textContent = '网络错误';
+    } catch (e) {
+        d.innerHTML = `<span style="display:block;color:red;">${e.message || '网络错误'}</span>`;
     }
 };
 
 const x = () => {
     m = [];
-    c.innerHTML = "";
+    c.innerHTML = '';
     localStorage.removeItem(STORAGE_KEY);
 };
 
 i.onkeydown = e => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         s();
     }
