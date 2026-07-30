@@ -1,5 +1,4 @@
 {
-  "cleanUrls": true,
   "functions": {
     "api/agent.js": {
       "maxDuration": 10
