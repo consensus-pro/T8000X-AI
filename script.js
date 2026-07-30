@@ -1,3 +1,4 @@
+//想找我的Key？在Environment Variables里藏着呢
 const c = document.getElementById("c");
 const i = document.getElementById("i");
 const STORAGE_KEY = 'DEEPSEEK_CHAT_HISTORY';
