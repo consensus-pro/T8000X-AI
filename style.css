@@ -42,5 +42,5 @@ textarea, button, div, span, * {
 .time {
     display: block;
     font-size: 8px;
-    color: #666;
+    color: grey;
 }

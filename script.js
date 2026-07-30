@@ -68,7 +68,7 @@ const s = async () => {
     const d = assistantDiv;
 
     try {
-        const res = await fetch('/api/chat', {
+        const res = await fetch('/api/agent', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ messages: m }),
