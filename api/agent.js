@@ -32,10 +32,17 @@ export default async function handler(req, res) {
       }),
     });
 
-    const data = await response.json();
+    // 改动开始
+    const raw = await response.text();        // 新增1: 获取原始文本
+    let data;
+    try {
+      data = JSON.parse(raw);                // 新增2: 手动解析
+    } catch (e) {
+      return res.status(500).json({ error: raw }); // 新增3: 解析失败返回原始内容
+    }
+    // 改动结束
 
     if (!response.ok) {
-      console.error('API接口 错误:', data);
       return res.status(response.status).json({ error: data.error?.message || '接口请求失败' });
     }
 
