@@ -14,11 +14,18 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: '服务器配置错误' });
     }
 
-    const messagesToSend = [];
+    const now = new Date();
+    const timeStr = now.toLocaleString('zh-CN', { hour12: false });
+    
+    let systemContent = `《当前时间 ${timeStr}》`;
     if (AI_DATA) {
-      messagesToSend.push({ role: "system", content: AI_DATA });
+      systemContent += ` ${AI_DATA}`;
     }
-    messagesToSend.push(...messages);
+
+    const messagesToSend = [
+      { role: "system", content: systemContent },
+      ...messages
+    ];
 
     const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
