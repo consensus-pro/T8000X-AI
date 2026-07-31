@@ -74,7 +74,12 @@ const s = async () => {
             body: JSON.stringify({ messages: m }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || '请求失败');
+
+        if (!res.ok) {
+            // 优先显示 raw 字段（DeepSeek 原始返回），如果没有则显示 error
+            const errorMsg = data.raw || data.error || '请求失败';
+            throw new Error(errorMsg);
+        }
 
         const content = data.choices?.[0]?.message?.content;
         if (!content) throw new Error('AI未返回内容');
