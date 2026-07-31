@@ -15,9 +15,12 @@ export default async function handler(req, res) {
     }
 
     const now = new Date();
-    const timeStr = now.toLocaleString('zh-CN', { hour12: false });
+    const timeStr = now.toLocaleString('zh-CN', { 
+      timeZone: 'Asia/Shanghai',
+      hour12: false 
+    });
     
-    let systemContent = `《当前时间 ${timeStr}》`;
+    let systemContent = `当前时间是 ${timeStr}。`;
     if (AI_DATA) {
       systemContent += ` ${AI_DATA}`;
     }
